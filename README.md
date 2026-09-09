@@ -111,6 +111,13 @@ When using the Sites plugin, follow its skill instructions for installation, bui
 
 Like the Sites package, `npm run build` runs `vinext build` directly; it does not require a host `timeout` command.
 
+## Green & Blue site notes
+
+- The three suites (copy, facts, highlights, Airbnb links, gallery picks) live in `lib/suites.ts`; the photo lists in `lib/photos.ts` point at `public/images/<suite>/NN.jpg`, downloaded from each Airbnb listing.
+- Availability is per suite. `nights` is keyed by `(suite, day)` and `bookings.suite` records which suite a request is for (`drizzle/0001_*.sql`). Apply that migration locally with the D1 command above, and in production on publish.
+- `/api/availability?suite=<slug>&calendar=1` feeds the guest calendar; `/api/admin` returns every occupied night for the owner calendar, where the owner blocks or releases date ranges per suite.
+- Set `ADMIN_EMAIL` (the owner's ChatGPT account email) in the environment to unlock `/admin`.
+
 ## Learn More
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
