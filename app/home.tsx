@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import StayCalendar from './stay-calendar';
 import { useLang, LanguageGate, LanguageToggle } from './language';
+import GoogleReviews from './reviews';
 import { suites, type Suite } from '@/lib/suites';
 import { locale } from '@/lib/i18n';
 import { pretty } from '@/lib/stay-dates';
@@ -27,7 +28,7 @@ return <><LanguageGate/><header className="header"><a className="brand" href="/"
 <div className="guest-field"><label>{t.booking.guests}</label><Select value={guests} onValueChange={setGuests}><SelectTrigger aria-label={t.booking.guests}><SelectValue/></SelectTrigger><SelectContent>{Array.from({length:suite.guests},(_,i)=>String(i+1)).map(n=><SelectItem value={n} key={n}>{t.booking.guest(Number(n))}</SelectItem>)}</SelectContent></Select></div>
 <button className="button" disabled={busy}>{busy?t.booking.checking:t.booking.check}<ArrowUpRight size={18}/></button></form>
 <p className="booking-note">{t.booking.note(suite.name)}</p>{message&&!open&&<p role="alert" className="error">{message}</p>}</section>
-<section id="suites" className="suites-head section"><p className="eyebrow">{t.suites.eyebrow}</p><h2>{t.suites.title}<br/><em>{t.suites.titleEm}</em></h2><p>{t.suites.intro}</p><nav className="suite-jump" aria-label={t.nav.suites}>{suites.map((s,i)=><a key={s.slug} href={'#'+s.slug}><span>0{i+1}</span>{s.name}</a>)}</nav></section>
+<section id="suites" className="suites-head section"><div><p className="eyebrow">{t.suites.eyebrow}</p><h2>{t.suites.title}<br/><em>{t.suites.titleEm}</em></h2><p>{t.suites.intro}</p><nav className="suite-jump" aria-label={t.nav.suites}>{suites.map((s,i)=><a key={s.slug} href={'#'+s.slug}><span>0{i+1}</span>{s.name}</a>)}</nav></div><GoogleReviews/></section>
 {suites.map((s,i)=>{const x=s.text[lang];return <article key={s.slug} id={s.slug} className="suite-block section">
 <div className="suite-intro"><div><p className="eyebrow">{x.eyebrow}</p><h2>{x.tagline}<br/><em>{x.taglineEm}</em></h2><p className="suite-kicker">0{i+1} · {s.name} · {t.suites.rating(s.rating)}</p></div>
 <div><p>{x.summary}</p><div className="facts"><span><Expand/>{t.suites.size(s.size)}</span><span><Users/>{t.suites.guests(s.guests)}</span><span><BedDouble/>{x.beds}</span><span><Bath/>{t.suites.bath(s.baths)}</span></div><ul className="highlights">{x.highlights.map(h=><li key={h}><Check size={15}/>{h}</li>)}</ul><div className="suite-links"><button type="button" className="button" onClick={()=>chooseSuite(s)}>{t.suites.dates} <ArrowUpRight size={18}/></button><a href={s.airbnb} target="_blank" rel="noreferrer" className="text-link">{t.suites.airbnb} <ArrowUpRight size={17}/></a></div></div></div>
