@@ -1,0 +1,2 @@
+import { db, days } from '@/lib/booking';
+export async function GET(r:Request){try{const u=new URL(r.url),a=u.searchParams.get('arrival')||'',b=u.searchParams.get('departure')||'';const nights=days(a,b);const hit=await db().prepare('SELECT day FROM nights WHERE day>=? AND day<? LIMIT 1').bind(a,b).first();return Response.json({available:!hit,nights:nights.length},{headers:{'Cache-Control':'no-store'}});}catch(e){return Response.json({error:e instanceof Error&&e.message.startsWith('Choose')?e.message:'Availability could not be checked. Please try again.'},{status:400});}}
