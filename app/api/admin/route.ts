@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { db, days, isAdmin, sameOrigin, suiteOf, today, horizon, userError } from '@/lib/booking';
+import { db, days, isAdmin, sameOrigin, suiteOf, today, horizon, UserError, message } from '@/lib/booking';
 import { suiteSlugs } from '@/lib/suites';
 const noCache={headers:{'Cache-Control':'no-store'}};
 const forbidden=()=>Response.json({error:'Owner access required.'},{status:403});
@@ -40,4 +40,4 @@ export async function POST(r:Request){if(!sameOrigin(r)||!await isAdmin())return
  await db().batch([db().prepare('DELETE FROM nights WHERE booking_id=?').bind(b.id),db().prepare("UPDATE bookings SET status='cancelled' WHERE id=?").bind(b.id)]);
  }
  return Response.json({ok:true});
- }catch(e){console.error(e);return Response.json({error:userError(e,'Could not save. Dates may overlap an existing reservation or block.')},{status:409});}}
+ }catch(e){console.error(e);return Response.json({error:e instanceof UserError?message('en',e.code,...e.args):'Could not save. Dates may overlap an existing reservation or block.'},{status:409});}}

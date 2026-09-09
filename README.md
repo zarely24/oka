@@ -116,6 +116,7 @@ Like the Sites package, `npm run build` runs `vinext build` directly; it does no
 - The three suites (copy, facts, highlights, Airbnb links, gallery picks) live in `lib/suites.ts`; the photo lists in `lib/photos.ts` point at `public/images/<suite>/NN.jpg`, downloaded from each Airbnb listing.
 - Availability is per suite. `nights` is keyed by `(suite, day)` and `bookings.suite` records which suite a request is for (`drizzle/0001_*.sql`). Apply that migration locally with the D1 command above, and in production on publish.
 - `/api/availability?suite=<slug>&calendar=1` feeds the guest calendar; `/api/admin` returns every occupied night for the owner calendar, where the owner blocks or releases date ranges per suite.
+- The public site is bilingual. First-time visitors pick English or Greek (`app/language.tsx`); the choice is stored in a `lang` cookie that the layout reads so the server renders the right language. UI strings live in `lib/i18n.ts`, API messages in `lib/messages.ts`, and per-suite copy under `text.en` / `text.el` in `lib/suites.ts`. The owner dashboard stays in English.
 - Set `ADMIN_EMAIL` (the owner's ChatGPT account email) in the environment to unlock `/admin`.
 
 ## Learn More
