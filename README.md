@@ -117,6 +117,7 @@ Like the Sites package, `npm run build` runs `vinext build` directly; it does no
 - Availability is per suite. `nights` is keyed by `(suite, day)` and `bookings.suite` records which suite a request is for (`drizzle/0001_*.sql`). Apply that migration locally with the D1 command above, and in production on publish.
 - `/api/availability?suite=<slug>&calendar=1` feeds the guest calendar; `/api/admin` returns every occupied night for the owner calendar, where the owner blocks or releases date ranges per suite.
 - The public site is bilingual. First-time visitors pick English or Greek (`app/language.tsx`); the choice is stored in a `lang` cookie that the layout reads so the server renders the right language. UI strings live in `lib/i18n.ts`, API messages in `lib/messages.ts`, and per-suite copy under `text.en` / `text.el` in `lib/suites.ts`. The owner dashboard stays in English.
+- SEO lives in `lib/seo.ts`: per-language title/description/keywords, canonical + hreflang (`/` and `/?lang=el`), Open Graph / Twitter cards, and schema.org `LodgingBusiness` structured data with the three suites (injected by `app/page.tsx`). `app/robots.txt` and `app/sitemap.xml` are route handlers that use the request host, or `SITE_URL` when set. Crawlers never see the language gate. The map pin in `BUSINESS.lat/lng` is approximate: check it once the site has a domain.
 - Set `ADMIN_EMAIL` (the owner's ChatGPT account email) in the environment to unlock `/admin`.
 
 ## Learn More

@@ -1,12 +1,14 @@
 'use client';
-import {createContext,useContext,useState,type ReactNode} from 'react';
+import {createContext,useContext,useEffect,useState,type ReactNode} from 'react';
 import {dictionaries,type Lang,type Dictionary} from '@/lib/i18n';
 type Ctx={lang:Lang;t:Dictionary;setLang:(l:Lang)=>void;chosen:boolean};
 const LangContext=createContext<Ctx>({lang:'en',t:dictionaries.en,setLang:()=>{},chosen:true});
-/** Holds the visitor's language. The server passes the cookie value so the first render is already in the right language. */
-export function LanguageProvider({initial,chosen:initialChosen,children}:{initial:Lang;chosen:boolean;children:ReactNode}){
+const remember=(l:Lang)=>{document.cookie=`lang=${l}; path=/; max-age=31536000; SameSite=Lax`;document.documentElement.lang=l;};
+/** Holds the visitor's language. The server passes the resolved value so the first render is already in the right language. `persist` stores a language that came from ?lang= in the cookie. */
+export function LanguageProvider({initial,chosen:initialChosen,persist=false,children}:{initial:Lang;chosen:boolean;persist?:boolean;children:ReactNode}){
  const [lang,setLangState]=useState<Lang>(initial),[chosen,setChosen]=useState(initialChosen);
- function setLang(l:Lang){setLangState(l);setChosen(true);document.cookie=`lang=${l}; path=/; max-age=31536000; SameSite=Lax`;document.documentElement.lang=l;}
+ useEffect(()=>{if(persist)remember(initial);},[persist,initial]);
+ function setLang(l:Lang){setLangState(l);setChosen(true);remember(l);}
  return <LangContext.Provider value={{lang,t:dictionaries[lang],setLang,chosen}}>{children}</LangContext.Provider>;
 }
 export const useLang=()=>useContext(LangContext);
