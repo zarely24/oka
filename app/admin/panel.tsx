@@ -12,7 +12,7 @@ export default function Admin(){
  useEffect(()=>{load();},[]);
  async function act(body:object){setBusy(true);setError('');try{const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json() as {error?:string};if(!r.ok)throw Error(d.error);await load();return true;}catch(e){setError((e as Error).message);return false;}finally{setBusy(false);}}
  const visible=filter==='all'?rows:rows.filter(r=>r.suite===filter);
- return <><header className="header"><a className="brand" href="/">green<span>&</span>blue<small>OWNER DASHBOARD</small></a><a href="/signout-with-chatgpt?return_to=/" target="_top">Sign out</a></header>
+ return <><header className="header"><a className="brand" href="/">green<span>&</span>blue<small>OWNER DASHBOARD</small></a><button className="signout" onClick={async()=>{await fetch("/api/admin/logout",{method:"POST"});location.href="/";}}>Sign out</button></header>
  <main className="admin"><p className="eyebrow">GREEN & BLUE · KASTELLA</p><h1>Your stays, in one place.</h1><p>Review requests, confirm reservations and manage availability for all three suites. Contact guests directly to agree the price before confirming.</p>
  <div className="stats">{['pending','confirmed','cancelled'].map(s=><div key={s}><strong>{rows.filter(r=>r.status===s).length}</strong><span>{s}</span></div>)}</div>
  {error&&<p className="error" role="alert">{error}</p>}

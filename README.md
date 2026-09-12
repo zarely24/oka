@@ -19,9 +19,7 @@ This starter does not use `wrangler.jsonc`.
 
 `npm run dev` uses `vinext dev` for the live Vite preview with HMR, starting at port 5173. Vinext records the running server in ignored `.vinext/` state and rejects another start for the same checkout while that process is alive; reuse its printed URL. It recovers stale state after a stopped process. Pass `--port <port>` or `--hostname <host>` after `npm run dev --` when needed; keep Codex previews on loopback. Like the Sites package, this relies on Vinext's advisory lock; exactly simultaneous starts can race.
 
-The bundled Sites Vite plugin simulates ChatGPT sign-in only for loopback development requests. Visit `/signin-with-chatgpt?return_to=/` to sign in as `local_seedy` (`seedy@sites.test`, display name `Seedy`) and `/signout-with-chatgpt?return_to=/` to sign out. The development cookie preserves that identity across server restarts. This does not exercise real ChatGPT OAuth and is not included in production builds; hosted authentication remains dispatch-owned.
-
-The Worker uses `vinext/server/fetch-handler`, including Vinext's config-aware image handling. After building, `npm start` runs that Worker locally through Wrangler on `127.0.0.1`, sharing `.wrangler/state` with dev preview and local D1 migrations; it does not deploy the site or simulate sign-in. Use the URL printed by the server. Pass `npm start -- --port <port>` to select a different built-preview port.
+The Worker uses `vinext/server/fetch-handler`, including Vinext's config-aware image handling. After building, `npm start` runs that Worker locally through Wrangler on `127.0.0.1`, sharing `.wrangler/state` with dev preview and local D1 migrations; it does not deploy the site. Use the URL printed by the server. Pass `npm start -- --port <port>` to select a different built-preview port.
 
 Local previews use Miniflare's placeholder `Request.cf` metadata without a network lookup. Set `CLOUDFLARE_CF_FETCH_ENABLED=true` to opt into fetching preview metadata; this setting does not change hosted request metadata.
 
@@ -30,7 +28,7 @@ Local tool usage metrics are disabled by default. Set `WRANGLER_SEND_METRICS=tru
 ## Included Shape
 
 - edit site code under `app/`
-- `app/chatgpt-auth.ts` provides optional dispatch-owned ChatGPT sign-in helpers
+- `lib/auth.ts` provides the owner password sign-in for `/admin`
 - `.openai/hosting.json` declares optional Sites D1 and R2 bindings
 - `vite.config.ts` simulates declared bindings for local development
 - `db/index.ts` reads the D1 binding from the Cloudflare Worker environment
@@ -39,55 +37,9 @@ Local tool usage metrics are disabled by default. Set `WRANGLER_SEND_METRICS=tru
 - `examples/d1/` contains an optional D1 example surface
 - `drizzle.config.ts` supports local migration generation when needed
 
-## Workspace Auth Headers
+## Owner sign-in
 
-Signed-in visitors receive both `oai-authenticated-user-id` and `oai-authenticated-user-email`. Private Sites require every visitor to sign in; public Sites may also have anonymous visitors, for whom neither header is present.
-
-The user ID is stable for the same user on the same Site and different across Sites. Use it as the durable user key; use email and name for display or contact purposes.
-
-SIWC-authenticated workspace sites may also receive `oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty `name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by `oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const userId = requestHeaders.get("oai-authenticated-user-id");
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
-```
-
-## Optional Dispatch-Owned ChatGPT Sign-In
-
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs optional or required ChatGPT sign-in:
-
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use the returned `userId` as the stable user key for user-owned records; do not use email as a durable identifier.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send anonymous visitors through Sign in with ChatGPT.
-- In a Server Component, start sign-in with `<a href={chatGPTSignInPath(returnTo)} target="_top">`. The auth helper module is server-only; do not import it into a Client Component.
-- Do not use `fetch`, XHR, a client-side router, or a framework link that can prefetch the sign-in route. SIWC must start as a top-level navigation.
-- Never request the AuthAPI authorization endpoint directly. The dispatch-owned `/signin-with-chatgpt` route must start the SIWC flow.
-- Use `chatGPTSignOutPath(returnTo)` for browser sign-out links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because they depend on per-request identity headers.
-
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the OAuth cookies, and identity header injection. Do not implement app routes for those reserved paths. Routes that do not import and call the helper remain anonymous-compatible.
-
-SIWC establishes identity only; it does not prove workspace membership. Use the Sites hosting platform's access policy controls for workspace-wide restrictions, or enforce explicit server-side membership or allowlist checks.
-
-Use SIWC for account pages, user-specific dashboards, saved records, and write actions tied to the current ChatGPT user. Leave public content anonymous.
+`/admin` is protected by a single owner password, nothing else. Set `ADMIN_PASSWORD` in the environment (`.env` locally, the host's secrets in production); optionally set `ADMIN_SESSION_SECRET` so that changing the password does not sign the owner out. `lib/auth.ts` checks the password in constant time and issues an `owner_session` cookie (HttpOnly, SameSite=Lax, 30 days) signed with HMAC-SHA256; `isAdmin()` in `lib/booking.ts` verifies that cookie for the dashboard page and `/api/admin`. `/api/admin/login` and `/api/admin/logout` set and clear it. There is no third-party identity provider, and the site never asks visitors or the owner to sign in with an external account.
 
 ## Local D1 migrations
 
@@ -119,7 +71,7 @@ Like the Sites package, `npm run build` runs `vinext build` directly; it does no
 - The public site is bilingual. First-time visitors pick English or Greek (`app/language.tsx`); the choice is stored in a `lang` cookie that the layout reads so the server renders the right language. UI strings live in `lib/i18n.ts`, API messages in `lib/messages.ts`, and per-suite copy under `text.en` / `text.el` in `lib/suites.ts`. The owner dashboard stays in English.
 - SEO lives in `lib/seo.ts`: per-language title/description/keywords, canonical + hreflang (`/` and `/?lang=el`), Open Graph / Twitter cards, and schema.org `LodgingBusiness` structured data with the three suites (injected by `app/page.tsx`). `app/robots.txt` and `app/sitemap.xml` are route handlers that use the request host, or `SITE_URL` when set. Crawlers never see the language gate. The map pin in `BUSINESS.lat/lng` is approximate: check it once the site has a domain.
 - Google reviews: `app/reviews.tsx` shows the rating and latest reviews next to "Choose your view". `/api/reviews` serves the snapshot in `lib/reviews.ts` until `GOOGLE_PLACES_API_KEY` (Places API (New) enabled) and `GOOGLE_PLACE_ID` are set in the environment, after which it fetches live data from Google and caches it for six hours.
-- Set `ADMIN_EMAIL` (the owner's ChatGPT account email) in the environment to unlock `/admin`.
+- Set `ADMIN_PASSWORD` in the environment to unlock `/admin` (see Owner sign-in above).
 
 ## Learn More
 

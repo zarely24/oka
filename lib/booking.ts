@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { getChatGPTUser } from '@/app/chatgpt-auth';
+import { isOwnerRequest } from './auth';
 import { findSuite, type Suite } from './suites';
 import { isLang, type Lang } from './i18n';
 import { messages, type MessageCode } from './messages';
@@ -7,7 +7,7 @@ export const MAX_NIGHTS = 60;
 /** An error that is safe to show to the visitor, translated by code. */
 export class UserError extends Error { constructor(public code: MessageCode, public args: unknown[] = []) { super(code); } }
 export function db() { if (!env.DB) throw new Error('Booking service unavailable'); return env.DB; }
-export async function isAdmin() { const user = await getChatGPTUser(); const email = (env as unknown as {ADMIN_EMAIL?:string}).ADMIN_EMAIL; return !!(email && user && user.email.toLowerCase() === email.toLowerCase()); }
+export async function isAdmin() { return isOwnerRequest(); }
 /** Today's date in Athens as YYYY-MM-DD. */
 export function today() { return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Athens',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }
 /** Last bookable day (18 months out). */
